@@ -1,7 +1,7 @@
 import {
-  MessageRepository,
   PaginatedMessages,
 } from '../../domain/repositories/message.repository';
+import { MessageSearchReader } from '../../domain/search/message-search.reader';
 import { SearchConversationMessagesUseCase } from './search-conversation-messages.use-case';
 
 describe('SearchConversationMessagesUseCase', () => {
@@ -26,8 +26,10 @@ describe('SearchConversationMessagesUseCase', () => {
     };
 
     const searchByConversationId = jest.fn(async () => response);
-    const repository = { searchByConversationId } as unknown as MessageRepository;
-    const useCase = new SearchConversationMessagesUseCase(repository);
+    const searchReader = {
+      searchByConversationId,
+    } as MessageSearchReader;
+    const useCase = new SearchConversationMessagesUseCase(searchReader);
 
     const result = await useCase.execute({
       conversationId: 'conversation-1',
@@ -40,10 +42,8 @@ describe('SearchConversationMessagesUseCase', () => {
     expect(searchByConversationId).toHaveBeenCalledWith(
       'conversation-1',
       'hello',
-      {
-        page: 1,
-        limit: 5,
-      },
+      1,
+      5,
     );
     expect(result).toEqual(response);
   });

@@ -1,28 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SearchConversationMessagesQuery } from '../dto/search-conversation-messages.query';
 import {
-  MESSAGE_REPOSITORY,
-  MessageRepository,
   PaginatedMessages,
 } from '../../domain/repositories/message.repository';
+import {
+  MESSAGE_SEARCH_READER,
+  MessageSearchReader,
+} from '../../domain/search/message-search.reader';
 
 @Injectable()
 export class SearchConversationMessagesUseCase {
   constructor(
-    @Inject(MESSAGE_REPOSITORY)
-    private readonly messageRepository: MessageRepository,
+    @Inject(MESSAGE_SEARCH_READER)
+    private readonly messageSearchReader: MessageSearchReader,
   ) {}
 
   async execute(
     query: SearchConversationMessagesQuery,
   ): Promise<PaginatedMessages> {
-    return this.messageRepository.searchByConversationId(
+    return this.messageSearchReader.searchByConversationId(
       query.conversationId,
       query.q,
-      {
-        page: query.page,
-        limit: query.limit,
-      },
+      query.page,
+      query.limit,
     );
   }
 }

@@ -1,9 +1,11 @@
+import 'dotenv/config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 
 describe('MessagesController (integration)', () => {
+  jest.setTimeout(30000);
+
   let app: INestApplication;
   let accessToken: string;
 
@@ -13,6 +15,9 @@ describe('MessagesController (integration)', () => {
     });
 
   beforeAll(async () => {
+    process.env.NODE_ENV = 'test';
+
+    const { AppModule } = await import('../src/app.module');
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -76,7 +81,7 @@ describe('MessagesController (integration)', () => {
   });
 
   it('GET /api/conversations/:conversationId/messages supports pagination and sorting', async () => {
-    const conversationId = 'conversation-pagination-1';
+    const conversationId = `conversation-pagination-${Date.now()}`;
 
     await request(app.getHttpServer())
       .post('/api/messages')
@@ -136,7 +141,7 @@ describe('MessagesController (integration)', () => {
   });
 
   it('GET /api/conversations/:conversationId/messages/search searches by q with pagination', async () => {
-    const conversationId = 'conversation-search-1';
+    const conversationId = `conversation-search-${Date.now()}`;
 
     await request(app.getHttpServer())
       .post('/api/messages')
@@ -167,21 +172,35 @@ describe('MessagesController (integration)', () => {
         senderId: 'user-1',
       });
 
-    const response = await request(app.getHttpServer())
-      .get(`/api/conversations/${conversationId}/messages/search`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .query({ q: 'hello', page: 1, limit: 1 })
-      .expect(200);
+    let response: request.Response | undefined;
 
-    expect(response.body.meta).toMatchObject({
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const currentResponse = await request(app.getHttpServer())
+        .get(`/api/conversations/${conversationId}/messages/search`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .query({ q: 'hello', page: 1, limit: 1 })
+        .expect(200);
+
+      response = currentResponse;
+
+      if (currentResponse.body.meta.total >= 2) {
+        break;
+      }
+
+      await wait(300);
+    }
+
+    expect(response).toBeDefined();
+
+    expect(response!.body.meta).toMatchObject({
       page: 1,
       limit: 1,
       total: 2,
       totalPages: 2,
       sortOrder: 'desc',
     });
-    expect(response.body.data).toHaveLength(1);
-    expect(response.body.data[0].content).toBe('HELLO gamma');
+    expect(response!.body.data).toHaveLength(1);
+    expect(response!.body.data[0].content).toBe('HELLO gamma');
   });
 
   it('GET /api/conversations/:conversationId/messages/search returns 400 when q is missing', async () => {
