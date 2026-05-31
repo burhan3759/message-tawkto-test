@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
+import { KafkaMessageCreatedSubscriber } from '../src/modules/messages/infrastructure/events/kafka-message-created.subscriber';
 
 describe('MessagesController (integration)', () => {
   jest.setTimeout(60000);
@@ -20,7 +21,13 @@ describe('MessagesController (integration)', () => {
     const { AppModule } = await import('../src/app.module');
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(KafkaMessageCreatedSubscriber)
+      .useValue({
+        onModuleInit: async () => undefined,
+        onModuleDestroy: async () => undefined,
+      })
+      .compile();
 
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(

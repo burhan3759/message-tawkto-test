@@ -26,6 +26,7 @@ export class KafkaMessageCreatedSubscriber
   private readonly topic: string;
   private readonly consumer: Consumer;
   private runPromise?: Promise<void>;
+  private isShuttingDown = false;
 
   constructor(
     @Inject(MESSAGE_EVENT_INDEXER)
@@ -75,28 +76,48 @@ export class KafkaMessageCreatedSubscriber
     await this.consumer.connect();
     await this.consumer.subscribe({ topic: this.topic, fromBeginning: false });
 
-    this.runPromise = this.consumer.run({
-      eachMessage: async ({ message }) => {
-        if (!message.value) {
-          return;
+    this.runPromise = this.consumer
+      .run({
+        eachMessage: async ({ message }) => {
+          if (!message.value) {
+            return;
+          }
+
+          const payload = JSON.parse(message.value.toString()) as MessageCreatedEvent;
+
+          if (payload.eventName !== 'message.created') {
+            return;
+          }
+
+          await this.messageEventIndexer.indexMessageCreated(payload.data);
+        },
+      })
+      .catch((error) => {
+        if (!this.isShuttingDown) {
+          throw error;
         }
-
-        const payload = JSON.parse(message.value.toString()) as MessageCreatedEvent;
-
-        if (payload.eventName !== 'message.created') {
-          return;
-        }
-
-        await this.messageEventIndexer.indexMessageCreated(payload.data);
-      },
-    });
+      });
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.isShuttingDown = true;
+
     if (this.runPromise) {
-      await this.consumer.stop();
+      try {
+        await this.consumer.stop();
+      } catch {
+        // Ignore shutdown-time consumer stop failures.
+      }
     }
 
-    await this.consumer.disconnect();
+    try {
+      await this.consumer.disconnect();
+    } catch {
+      // Ignore shutdown-time consumer disconnect failures.
+    }
+
+    if (this.runPromise) {
+      await this.runPromise;
+    }
   }
 }

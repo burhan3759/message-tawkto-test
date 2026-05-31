@@ -10,7 +10,8 @@
     "start:prod": "node dist/main.js",
     "test": "jest",
     "test:unit": "jest --testMatch '**/*.spec.ts'",
-    "test:integration": "jest --testMatch '**/*.int-spec.ts'"
+    "test:integration": "jest --runInBand --testMatch '**/*.int-spec.ts'",
+    "test:pipeline:e2e": "RUN_PIPELINE_E2E=true jest --runInBand --testMatch '**/*.int-spec.ts' --testMatch '**/messages.pipeline.int-spec.ts'"
   },
   "keywords": [],
   "author": "",
