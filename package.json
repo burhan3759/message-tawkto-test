@@ -5,7 +5,10 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "ts-node src/main.ts"
+    "start": "ts-node src/main.ts",
+    "test": "jest",
+    "test:unit": "jest --testMatch '**/*.spec.ts'",
+    "test:integration": "jest --testMatch '**/*.int-spec.ts'"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +26,13 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.24",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.9.1",
+    "@types/supertest": "^7.2.0",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
