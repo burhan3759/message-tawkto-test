@@ -18,6 +18,7 @@ async function bootstrap(): Promise<void> {
     .setTitle('Tawkto Message API')
     .setDescription('API documentation for message endpoints')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, swaggerDocument);

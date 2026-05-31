@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 
 describe('MessagesController (integration)', () => {
   let app: INestApplication;
+  let accessToken: string;
 
   const wait = (ms: number) =>
     new Promise((resolve) => {
@@ -25,6 +26,16 @@ describe('MessagesController (integration)', () => {
       }),
     );
     await app.init();
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        username: 'demo',
+        password: 'demo123',
+      })
+      .expect(200);
+
+    accessToken = loginResponse.body.accessToken;
   });
 
   afterAll(async () => {
@@ -34,6 +45,7 @@ describe('MessagesController (integration)', () => {
   it('POST /api/messages creates a message', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         conversationId: 'conversation-1',
         content: 'Integration test message',
@@ -53,6 +65,7 @@ describe('MessagesController (integration)', () => {
   it('POST /api/messages returns 400 when required fields are missing', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({
         senderId: 'user-123',
       })
@@ -65,28 +78,38 @@ describe('MessagesController (integration)', () => {
   it('GET /api/conversations/:conversationId/messages supports pagination and sorting', async () => {
     const conversationId = 'conversation-pagination-1';
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'first',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'first',
+        senderId: 'user-1',
+      });
     await wait(5);
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'second',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'second',
+        senderId: 'user-1',
+      });
     await wait(5);
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'third',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'third',
+        senderId: 'user-1',
+      });
 
     const ascResponse = await request(app.getHttpServer())
       .get(`/api/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .query({ page: 1, limit: 2, sortOrder: 'asc' })
       .expect(200);
 
@@ -103,6 +126,7 @@ describe('MessagesController (integration)', () => {
 
     const descResponse = await request(app.getHttpServer())
       .get(`/api/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .query({ page: 1, limit: 2, sortOrder: 'desc' })
       .expect(200);
 
@@ -114,28 +138,38 @@ describe('MessagesController (integration)', () => {
   it('GET /api/conversations/:conversationId/messages/search searches by q with pagination', async () => {
     const conversationId = 'conversation-search-1';
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'Hello alpha',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'Hello alpha',
+        senderId: 'user-1',
+      });
     await wait(5);
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'beta content',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'beta content',
+        senderId: 'user-1',
+      });
     await wait(5);
 
-    await request(app.getHttpServer()).post('/api/messages').send({
-      conversationId,
-      content: 'HELLO gamma',
-      senderId: 'user-1',
-    });
+    await request(app.getHttpServer())
+      .post('/api/messages')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        conversationId,
+        content: 'HELLO gamma',
+        senderId: 'user-1',
+      });
 
     const response = await request(app.getHttpServer())
       .get(`/api/conversations/${conversationId}/messages/search`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .query({ q: 'hello', page: 1, limit: 1 })
       .expect(200);
 
@@ -155,9 +189,17 @@ describe('MessagesController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .get(`/api/conversations/${conversationId}/messages/search`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .query({ page: 1, limit: 10 })
       .expect(400);
 
     expect(response.body.message).toContain('q should not be empty');
+  });
+
+  it('returns 401 when missing token on protected endpoint', async () => {
+    await request(app.getHttpServer())
+      .get('/api/conversations/any/messages')
+      .query({ page: 1, limit: 10, sortOrder: 'desc' })
+      .expect(401);
   });
 });

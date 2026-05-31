@@ -1,12 +1,24 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiOkResponse,
+  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '../../../auth/presentation/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../auth/presentation/guards/roles.guard';
 import { CreateMessageUseCase } from '../../application/use-cases/create-message.use-case';
 import { GetConversationMessagesUseCase } from '../../application/use-cases/get-conversation-messages.use-case';
 import { SearchConversationMessagesUseCase } from '../../application/use-cases/search-conversation-messages.use-case';
@@ -15,6 +27,9 @@ import { GetConversationMessagesQueryDto } from '../dto/get-conversation-message
 import { SearchConversationMessagesQueryDto } from '../dto/search-conversation-messages.query.dto';
 
 @ApiTags('messages')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('user', 'admin')
 @Controller('api')
 export class MessagesController {
   constructor(
