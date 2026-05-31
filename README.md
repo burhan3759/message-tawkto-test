@@ -144,3 +144,11 @@ Then send:
 ## Notes
 - Search indexing is eventual consistency (Kafka + subscriber + Elasticsearch).
 - If mappings changed and local Elasticsearch index is stale, reset index in dev before retesting.
+
+## DEMO
+
+This video features a complete walkthrough of the project, the integration of Swagger, MongoDB, Kafka, and Kibana for Elasticsearch.
+
+https://github.com/user-attachments/assets/2b68f85d-9ca2-4750-9b1c-0a63458d3e41
+
+
