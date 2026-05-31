@@ -1,22 +1,17 @@
 import 'reflect-metadata';
-import { Controller, Get, Module } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-
-@Controller()
-class AppController {
-  @Get()
-  getHello(): string {
-    return 'hello world';
-  }
-}
-
-@Module({
-  controllers: [AppController],
-})
-class AppModule {}
+import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
   await app.listen(3000);
   console.log('API running at http://localhost:3000');
 }

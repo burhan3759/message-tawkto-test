@@ -4,6 +4,7 @@
     "target": "es2021",
     "lib": ["es2021"],
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
