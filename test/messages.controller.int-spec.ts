@@ -110,4 +110,54 @@ describe('MessagesController (integration)', () => {
     expect(descResponse.body.data[0].content).toBe('third');
     expect(descResponse.body.data[1].content).toBe('second');
   });
+
+  it('GET /api/conversations/:conversationId/messages/search searches by q with pagination', async () => {
+    const conversationId = 'conversation-search-1';
+
+    await request(app.getHttpServer()).post('/api/messages').send({
+      conversationId,
+      content: 'Hello alpha',
+      senderId: 'user-1',
+    });
+    await wait(5);
+
+    await request(app.getHttpServer()).post('/api/messages').send({
+      conversationId,
+      content: 'beta content',
+      senderId: 'user-1',
+    });
+    await wait(5);
+
+    await request(app.getHttpServer()).post('/api/messages').send({
+      conversationId,
+      content: 'HELLO gamma',
+      senderId: 'user-1',
+    });
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/conversations/${conversationId}/messages/search`)
+      .query({ q: 'hello', page: 1, limit: 1 })
+      .expect(200);
+
+    expect(response.body.meta).toMatchObject({
+      page: 1,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+      sortOrder: 'desc',
+    });
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].content).toBe('HELLO gamma');
+  });
+
+  it('GET /api/conversations/:conversationId/messages/search returns 400 when q is missing', async () => {
+    const conversationId = 'conversation-search-validation-1';
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/conversations/${conversationId}/messages/search`)
+      .query({ page: 1, limit: 10 })
+      .expect(400);
+
+    expect(response.body.message).toContain('q should not be empty');
+  });
 });

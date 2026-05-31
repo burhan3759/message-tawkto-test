@@ -4,26 +4,18 @@ import {
   FindMessagesOptions,
   MessageRepository,
   PaginatedMessages,
+  SearchMessagesOptions,
 } from '../../domain/repositories/message.repository';
 
 @Injectable()
 export class InMemoryMessageRepository implements MessageRepository {
   private readonly messages: Message[] = [];
 
-  async save(message: Message): Promise<Message> {
-    this.messages.push(message);
-    return message;
-  }
-
-  async findByConversationId(
-    conversationId: string,
+  private paginateAndSort(
+    messages: Message[],
     options: FindMessagesOptions,
-  ): Promise<PaginatedMessages> {
-    const filtered = this.messages.filter(
-      (message) => message.conversationId === conversationId,
-    );
-
-    const sorted = filtered.sort((a, b) => {
+  ): PaginatedMessages {
+    const sorted = messages.sort((a, b) => {
       const delta = a.timestamp.getTime() - b.timestamp.getTime();
       return options.sortOrder === 'asc' ? delta : -delta;
     });
@@ -43,5 +35,41 @@ export class InMemoryMessageRepository implements MessageRepository {
         sortOrder: options.sortOrder,
       },
     };
+  }
+
+  async save(message: Message): Promise<Message> {
+    this.messages.push(message);
+    return message;
+  }
+
+  async findByConversationId(
+    conversationId: string,
+    options: FindMessagesOptions,
+  ): Promise<PaginatedMessages> {
+    const filtered = this.messages.filter(
+      (message) => message.conversationId === conversationId,
+    );
+
+    return this.paginateAndSort(filtered, options);
+  }
+
+  async searchByConversationId(
+    conversationId: string,
+    searchTerm: string,
+    options: SearchMessagesOptions,
+  ): Promise<PaginatedMessages> {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filtered = this.messages.filter((message) => {
+      if (message.conversationId !== conversationId) {
+        return false;
+      }
+
+      return message.content.toLowerCase().includes(normalizedSearch);
+    });
+
+    return this.paginateAndSort(filtered, {
+      ...options,
+      sortOrder: 'desc',
+    });
   }
 }

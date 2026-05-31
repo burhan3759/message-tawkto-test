@@ -9,8 +9,10 @@ import {
 } from '@nestjs/swagger';
 import { CreateMessageUseCase } from '../../application/use-cases/create-message.use-case';
 import { GetConversationMessagesUseCase } from '../../application/use-cases/get-conversation-messages.use-case';
+import { SearchConversationMessagesUseCase } from '../../application/use-cases/search-conversation-messages.use-case';
 import { CreateMessageRequestDto } from '../dto/create-message.request.dto';
 import { GetConversationMessagesQueryDto } from '../dto/get-conversation-messages.query.dto';
+import { SearchConversationMessagesQueryDto } from '../dto/search-conversation-messages.query.dto';
 
 @ApiTags('messages')
 @Controller('api')
@@ -18,6 +20,7 @@ export class MessagesController {
   constructor(
     private readonly createMessageUseCase: CreateMessageUseCase,
     private readonly getConversationMessagesUseCase: GetConversationMessagesUseCase,
+    private readonly searchConversationMessagesUseCase: SearchConversationMessagesUseCase,
   ) {}
 
   @Post('messages')
@@ -56,6 +59,27 @@ export class MessagesController {
       page: query.page ?? 1,
       limit: query.limit ?? 20,
       sortOrder: query.sortOrder ?? 'desc',
+    });
+  }
+
+  @Get('conversations/:conversationId/messages/search')
+  @ApiOperation({
+    summary: 'Search messages in a conversation by content',
+  })
+  @ApiParam({ name: 'conversationId', example: 'conversation-123' })
+  @ApiQuery({ name: 'q', required: true, type: String, example: 'hello' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiOkResponse({ description: 'Conversation messages search completed successfully' })
+  async searchConversationMessages(
+    @Param('conversationId') conversationId: string,
+    @Query() query: SearchConversationMessagesQueryDto,
+  ) {
+    return this.searchConversationMessagesUseCase.execute({
+      conversationId,
+      q: query.q,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
     });
   }
 }

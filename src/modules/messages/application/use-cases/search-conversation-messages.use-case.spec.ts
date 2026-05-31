@@ -1,0 +1,50 @@
+import {
+  MessageRepository,
+  PaginatedMessages,
+} from '../../domain/repositories/message.repository';
+import { SearchConversationMessagesUseCase } from './search-conversation-messages.use-case';
+
+describe('SearchConversationMessagesUseCase', () => {
+  it('should search conversation messages with pagination', async () => {
+    const response: PaginatedMessages = {
+      data: [
+        {
+          id: 'msg-1',
+          conversationId: 'conversation-1',
+          senderId: 'user-1',
+          content: 'hello world',
+          timestamp: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ],
+      meta: {
+        page: 1,
+        limit: 5,
+        total: 1,
+        totalPages: 1,
+        sortOrder: 'desc',
+      },
+    };
+
+    const searchByConversationId = jest.fn(async () => response);
+    const repository = { searchByConversationId } as unknown as MessageRepository;
+    const useCase = new SearchConversationMessagesUseCase(repository);
+
+    const result = await useCase.execute({
+      conversationId: 'conversation-1',
+      q: 'hello',
+      page: 1,
+      limit: 5,
+    });
+
+    expect(searchByConversationId).toHaveBeenCalledTimes(1);
+    expect(searchByConversationId).toHaveBeenCalledWith(
+      'conversation-1',
+      'hello',
+      {
+        page: 1,
+        limit: 5,
+      },
+    );
+    expect(result).toEqual(response);
+  });
+});

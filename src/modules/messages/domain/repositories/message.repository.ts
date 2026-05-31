@@ -10,6 +10,11 @@ export type FindMessagesOptions = {
   sortOrder: MessageSortOrder;
 };
 
+export type SearchMessagesOptions = {
+  page: number;
+  limit: number;
+};
+
 export type PaginatedMessages = {
   data: Message[];
   meta: {
@@ -26,5 +31,10 @@ export interface MessageRepository {
   findByConversationId(
     conversationId: string,
     options: FindMessagesOptions,
+  ): Promise<PaginatedMessages>;
+  searchByConversationId(
+    conversationId: string,
+    searchTerm: string,
+    options: SearchMessagesOptions,
   ): Promise<PaginatedMessages>;
 }
