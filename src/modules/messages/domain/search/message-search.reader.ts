@@ -4,6 +4,7 @@ export const MESSAGE_SEARCH_READER = Symbol('MESSAGE_SEARCH_READER');
 
 export interface MessageSearchReader {
   searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     page: number,

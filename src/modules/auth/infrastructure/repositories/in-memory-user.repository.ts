@@ -10,6 +10,14 @@ export class InMemoryUserRepository implements UserRepository {
       username: 'demo',
       password: 'demo123',
       role: 'user',
+      tenantId: 'tenant-1',
+    },
+    {
+      id: 'user-2',
+      username: 'demo2',
+      password: 'demo123',
+      role: 'user',
+      tenantId: 'tenant-2',
     },
   ];
 

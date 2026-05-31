@@ -29,10 +29,12 @@ export type PaginatedMessages = {
 export interface MessageRepository {
   save(message: Message): Promise<Message>;
   findByConversationId(
+    tenantId: string,
     conversationId: string,
     options: FindMessagesOptions,
   ): Promise<PaginatedMessages>;
   searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     options: SearchMessagesOptions,

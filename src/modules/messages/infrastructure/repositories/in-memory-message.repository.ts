@@ -43,23 +43,31 @@ export class InMemoryMessageRepository implements MessageRepository {
   }
 
   async findByConversationId(
+    tenantId: string,
     conversationId: string,
     options: FindMessagesOptions,
   ): Promise<PaginatedMessages> {
     const filtered = this.messages.filter(
-      (message) => message.conversationId === conversationId,
+      (message) =>
+        message.tenantId === tenantId &&
+        message.conversationId === conversationId,
     );
 
     return this.paginateAndSort(filtered, options);
   }
 
   async searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     options: SearchMessagesOptions,
   ): Promise<PaginatedMessages> {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const filtered = this.messages.filter((message) => {
+      if (message.tenantId !== tenantId) {
+        return false;
+      }
+
       if (message.conversationId !== conversationId) {
         return false;
       }

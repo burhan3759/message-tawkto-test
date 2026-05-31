@@ -19,6 +19,7 @@ export class SearchConversationMessagesUseCase {
     query: SearchConversationMessagesQuery,
   ): Promise<PaginatedMessages> {
     return this.messageSearchReader.searchByConversationId(
+      query.tenantId,
       query.conversationId,
       query.q,
       query.page,

@@ -14,6 +14,7 @@ describe('CreateMessageUseCase', () => {
     const useCase = new CreateMessageUseCase(repository, eventPublisher);
 
     const result = await useCase.execute({
+      tenantId: 'tenant-1',
       conversationId: 'conversation-1',
       content: 'Hello world',
       senderId: ' user-1 ',
@@ -24,11 +25,13 @@ describe('CreateMessageUseCase', () => {
     expect(publishMessageCreated).toHaveBeenCalledTimes(1);
     expect(publishMessageCreated).toHaveBeenCalledWith(
       expect.objectContaining({
+        tenantId: 'tenant-1',
         conversationId: 'conversation-1',
         content: 'Hello world',
       }),
     );
     expect(result.id).toBeDefined();
+    expect(result.tenantId).toBe('tenant-1');
     expect(result.conversationId).toBe('conversation-1');
     expect(result.content).toBe('Hello world');
     expect(result.senderId).toBe('user-1');
@@ -39,6 +42,7 @@ describe('CreateMessageUseCase', () => {
   it('should publish the persisted message returned by repository', async () => {
     const persistedMessage: Message = {
       id: 'persisted-id',
+      tenantId: 'tenant-1',
       conversationId: 'conversation-1',
       senderId: 'user-1',
       content: 'Hello world',
@@ -55,6 +59,7 @@ describe('CreateMessageUseCase', () => {
     const useCase = new CreateMessageUseCase(repository, eventPublisher);
 
     const result = await useCase.execute({
+      tenantId: 'tenant-1',
       conversationId: 'conversation-1',
       content: 'Hello world',
       senderId: 'user-1',
@@ -78,6 +83,7 @@ describe('CreateMessageUseCase', () => {
 
     await expect(
       useCase.execute({
+        tenantId: 'tenant-1',
         conversationId: 'conversation-1',
         content: 'Hello world',
         senderId: 'user-1',

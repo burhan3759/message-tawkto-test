@@ -23,6 +23,7 @@ export class CreateMessageUseCase {
   async execute(command: CreateMessageCommand): Promise<Message> {
     const message: Message = {
       id: randomUUID(),
+      tenantId: command.tenantId,
       conversationId: command.conversationId,
       senderId: command.senderId.trim(),
       content: command.content,

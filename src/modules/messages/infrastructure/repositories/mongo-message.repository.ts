@@ -10,6 +10,7 @@ import {
 
 type MessageDocument = {
   _id: ObjectId;
+  tenantId: string;
   conversationId: string;
   senderId: string;
   content: string;
@@ -51,8 +52,16 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
           .db(this.dbName)
           .collection<MessageDocument>('messages');
 
-        await collection.createIndex({ conversationId: 1, timestamp: -1 });
-        await collection.createIndex({ conversationId: 1, content: 1 });
+        await collection.createIndex({
+          tenantId: 1,
+          conversationId: 1,
+          timestamp: -1,
+        });
+        await collection.createIndex({
+          tenantId: 1,
+          conversationId: 1,
+          content: 1,
+        });
 
         return collection;
       })();
@@ -64,6 +73,7 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
   private toEntity(document: MessageDocument): Message {
     return {
       id: document._id.toHexString(),
+      tenantId: document.tenantId,
       conversationId: document.conversationId,
       senderId: document.senderId,
       content: document.content,
@@ -97,6 +107,7 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
     const collection = await this.getCollection();
 
     const insertDocument: MessageInsertDocument = {
+      tenantId: message.tenantId,
       conversationId: message.conversationId,
       senderId: message.senderId,
       content: message.content,
@@ -115,11 +126,12 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
   }
 
   async findByConversationId(
+    tenantId: string,
     conversationId: string,
     options: FindMessagesOptions,
   ): Promise<PaginatedMessages> {
     const collection = await this.getCollection();
-    const filter = { conversationId };
+    const filter = { tenantId, conversationId };
 
     const total = await collection.countDocuments(filter);
     const documents = await collection
@@ -142,6 +154,7 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
   }
 
   async searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     options: SearchMessagesOptions,
@@ -150,6 +163,7 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
     const escapedSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const filter = {
+      tenantId,
       conversationId,
       content: { $regex: escapedSearch, $options: 'i' },
     };

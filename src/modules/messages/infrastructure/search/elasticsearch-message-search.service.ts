@@ -9,6 +9,7 @@ import { MessageSearchReader } from '../../domain/search/message-search.reader';
 
 type IndexedMessageDocument = {
   id: string;
+  tenantId: string;
   conversationId: string;
   senderId: string;
   content: string;
@@ -55,6 +56,7 @@ export class ElasticsearchMessageSearchService
               mappings: {
                 properties: {
                   id: { type: 'keyword' },
+                  tenantId: { type: 'keyword' },
                   conversationId: { type: 'keyword' },
                   senderId: { type: 'keyword' },
                   content: { type: 'text' },
@@ -85,6 +87,7 @@ export class ElasticsearchMessageSearchService
 
     const document: IndexedMessageDocument = {
       id: eventData.id,
+      tenantId: eventData.tenantId,
       conversationId: eventData.conversationId,
       senderId: eventData.senderId,
       content: eventData.content,
@@ -99,6 +102,7 @@ export class ElasticsearchMessageSearchService
   }
 
   async searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     page: number,
@@ -115,7 +119,8 @@ export class ElasticsearchMessageSearchService
       query: {
         bool: {
           must: [
-            { term: { conversationId } },
+            { match_phrase: { tenantId } },
+            { match_phrase: { conversationId } },
             {
               match: {
                 content: {
@@ -150,6 +155,7 @@ export class ElasticsearchMessageSearchService
         )
         .map((source) => ({
           id: source.id,
+          tenantId: source.tenantId,
           conversationId: source.conversationId,
           content: source.content,
           timestamp: new Date(source.timestamp),

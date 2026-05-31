@@ -10,6 +10,7 @@ describe('SearchConversationMessagesUseCase', () => {
       data: [
         {
           id: 'msg-1',
+          tenantId: 'tenant-1',
           conversationId: 'conversation-1',
           senderId: 'user-1',
           content: 'hello world',
@@ -32,6 +33,7 @@ describe('SearchConversationMessagesUseCase', () => {
     const useCase = new SearchConversationMessagesUseCase(searchReader);
 
     const result = await useCase.execute({
+      tenantId: 'tenant-1',
       conversationId: 'conversation-1',
       q: 'hello',
       page: 1,
@@ -40,6 +42,7 @@ describe('SearchConversationMessagesUseCase', () => {
 
     expect(searchByConversationId).toHaveBeenCalledTimes(1);
     expect(searchByConversationId).toHaveBeenCalledWith(
+      'tenant-1',
       'conversation-1',
       'hello',
       1,

@@ -12,6 +12,7 @@ type MessageCreatedEvent = {
   occurredAt: string;
   data: {
     id: string;
+    tenantId: string;
     conversationId: string;
     senderId: string;
     content: string;

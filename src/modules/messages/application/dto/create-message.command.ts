@@ -1,4 +1,5 @@
 export type CreateMessageCommand = {
+  tenantId: string;
   conversationId: string;
   content: string;
   senderId: string;

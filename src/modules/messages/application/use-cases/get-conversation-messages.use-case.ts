@@ -14,10 +14,14 @@ export class GetConversationMessagesUseCase {
   ) {}
 
   async execute(query: GetConversationMessagesQuery): Promise<PaginatedMessages> {
-    return this.messageRepository.findByConversationId(query.conversationId, {
-      page: query.page,
-      limit: query.limit,
-      sortOrder: query.sortOrder,
-    });
+    return this.messageRepository.findByConversationId(
+      query.tenantId,
+      query.conversationId,
+      {
+        page: query.page,
+        limit: query.limit,
+        sortOrder: query.sortOrder,
+      },
+    );
   }
 }

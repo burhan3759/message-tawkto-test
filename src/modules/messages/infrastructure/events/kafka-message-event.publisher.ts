@@ -65,6 +65,7 @@ export class KafkaMessageEventPublisher
       occurredAt: new Date().toISOString(),
       data: {
         id: message.id,
+        tenantId: message.tenantId,
         conversationId: message.conversationId,
         senderId: message.senderId,
         content: message.content,

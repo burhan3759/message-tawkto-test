@@ -13,6 +13,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
 
   let app: INestApplication;
   let accessToken: string;
+  let tenantId: string;
   let elasticsearchClient: Client;
   let indexName: string;
   let kafkaProducer: Producer;
@@ -93,6 +94,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       .expect(200);
 
     accessToken = loginResponse.body.accessToken;
+    tenantId = loginResponse.body.user.tenantId;
   });
 
   afterAll(async () => {
@@ -134,10 +136,16 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       latestSearchResponse = response;
 
       const hasMessage = response.body.data.some(
-        (item: { content: string; senderId: string; id: string }) =>
+        (item: {
+          content: string;
+          senderId: string;
+          id: string;
+          tenantId: string;
+        }) =>
           item.content.includes(uniqueTerm) &&
           item.senderId === senderId &&
-          item.id === createdMessageId,
+          item.id === createdMessageId &&
+          item.tenantId === tenantId,
       );
 
       if (hasMessage) {
@@ -154,6 +162,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
     let indexedDocument:
       | {
           id: string;
+          tenantId: string;
           conversationId: string;
           senderId: string;
           content: string;
@@ -164,6 +173,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const elasticsearchResult = await elasticsearchClient.search<{
         id: string;
+        tenantId: string;
         conversationId: string;
         senderId: string;
         content: string;
@@ -173,6 +183,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
         query: {
           bool: {
             must: [
+              { match_phrase: { tenantId } },
               { match_phrase: { conversationId } },
               { match_phrase: { content: uniqueTerm } },
             ],
@@ -199,6 +210,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
 
     expect(indexedDocument).toBeDefined();
     expect(indexedDocument?.id).toBe(createdMessageId);
+    expect(indexedDocument?.tenantId).toBe(tenantId);
     expect(indexedDocument?.conversationId).toBe(conversationId);
     expect(indexedDocument?.senderId).toBe(senderId);
     expect(indexedDocument?.content).toContain(uniqueTerm);
@@ -209,6 +221,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       occurredAt: new Date().toISOString(),
       data: {
         id: createdMessageId,
+        tenantId,
         conversationId,
         senderId,
         content: `hello ${uniqueTerm} from pipeline`,
@@ -234,6 +247,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
         query: {
           bool: {
             must: [
+              { match_phrase: { tenantId } },
               { match_phrase: { conversationId } },
               { match_phrase: { senderId } },
               { match_phrase: { content: uniqueTerm } },

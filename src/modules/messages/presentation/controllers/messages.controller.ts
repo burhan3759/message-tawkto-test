@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -26,6 +27,12 @@ import { CreateMessageRequestDto } from '../dto/create-message.request.dto';
 import { GetConversationMessagesQueryDto } from '../dto/get-conversation-messages.query.dto';
 import { SearchConversationMessagesQueryDto } from '../dto/search-conversation-messages.query.dto';
 
+type AuthenticatedRequest = {
+  user: {
+    tenantId: string;
+  };
+};
+
 @ApiTags('messages')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,8 +49,12 @@ export class MessagesController {
   @ApiOperation({ summary: 'Create a new message' })
   @ApiResponse({ status: 201, description: 'Message created successfully' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
-  async createMessage(@Body() request: CreateMessageRequestDto) {
+  async createMessage(
+    @Req() authRequest: AuthenticatedRequest,
+    @Body() request: CreateMessageRequestDto,
+  ) {
     return this.createMessageUseCase.execute({
+      tenantId: authRequest.user.tenantId,
       conversationId: request.conversationId,
       content: request.content,
       senderId: request.senderId,
@@ -66,10 +77,12 @@ export class MessagesController {
   })
   @ApiOkResponse({ description: 'Conversation messages retrieved successfully' })
   async getConversationMessages(
+    @Req() authRequest: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
     @Query() query: GetConversationMessagesQueryDto,
   ) {
     return this.getConversationMessagesUseCase.execute({
+      tenantId: authRequest.user.tenantId,
       conversationId,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
@@ -87,10 +100,12 @@ export class MessagesController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
   @ApiOkResponse({ description: 'Conversation messages search completed successfully' })
   async searchConversationMessages(
+    @Req() authRequest: AuthenticatedRequest,
     @Param('conversationId') conversationId: string,
     @Query() query: SearchConversationMessagesQueryDto,
   ) {
     return this.searchConversationMessagesUseCase.execute({
+      tenantId: authRequest.user.tenantId,
       conversationId,
       q: query.q,
       page: query.page ?? 1,

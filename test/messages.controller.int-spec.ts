@@ -10,6 +10,9 @@ describe('MessagesController (integration)', () => {
 
   let app: INestApplication;
   let accessToken: string;
+  let tenantId: string;
+  let tenant2AccessToken: string;
+  let tenant2Id: string;
   let elasticsearchClient: Client;
   let elasticsearchIndexName: string;
 
@@ -67,6 +70,18 @@ describe('MessagesController (integration)', () => {
       .expect(200);
 
     accessToken = loginResponse.body.accessToken;
+    tenantId = loginResponse.body.user.tenantId;
+
+    const tenant2LoginResponse = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        username: 'demo2',
+        password: 'demo123',
+      })
+      .expect(200);
+
+    tenant2AccessToken = tenant2LoginResponse.body.accessToken;
+    tenant2Id = tenant2LoginResponse.body.user.tenantId;
   });
 
   afterAll(async () => {
@@ -85,6 +100,7 @@ describe('MessagesController (integration)', () => {
       .expect(201);
 
     expect(response.body).toMatchObject({
+      tenantId,
       conversationId: 'conversation-1',
       content: 'Integration test message',
       senderId: 'user-123',
@@ -185,6 +201,7 @@ describe('MessagesController (integration)', () => {
     const docs = [
       {
         id: `search-${Date.now()}-1`,
+        tenantId,
         conversationId,
         senderId: 'user-1',
         content: 'Hello alpha',
@@ -192,6 +209,7 @@ describe('MessagesController (integration)', () => {
       },
       {
         id: `search-${Date.now()}-2`,
+        tenantId,
         conversationId,
         senderId: 'user-1',
         content: 'beta content',
@@ -199,6 +217,7 @@ describe('MessagesController (integration)', () => {
       },
       {
         id: `search-${Date.now()}-3`,
+        tenantId,
         conversationId,
         senderId: 'user-1',
         content: 'HELLO gamma',
@@ -318,6 +337,7 @@ describe('MessagesController (integration)', () => {
     const docs = [
       {
         id: `stable-${token}-a`,
+        tenantId,
         conversationId,
         senderId: 'user-sort',
         content: 'stable sort term',
@@ -325,6 +345,7 @@ describe('MessagesController (integration)', () => {
       },
       {
         id: `stable-${token}-b`,
+        tenantId,
         conversationId,
         senderId: 'user-sort',
         content: 'stable sort term',
@@ -353,6 +374,79 @@ describe('MessagesController (integration)', () => {
     expect(response.body.meta.total).toBeGreaterThanOrEqual(2);
     expect(response.body.data[0].id).toBe(`stable-${token}-b`);
     expect(response.body.data[1].id).toBe(`stable-${token}-a`);
+  });
+
+  it('GET /api/conversations/:conversationId/messages/search does not leak cross-tenant data', async () => {
+    const token = Date.now();
+    const conversationId = `conversation-tenant-leak-${token}`;
+    const sharedTerm = `tenant-shared-${token}`;
+
+    const docs = [
+      {
+        id: `tenant1-${token}`,
+        tenantId,
+        conversationId,
+        senderId: 'user-1',
+        content: `hello ${sharedTerm} tenant1`,
+        timestamp: new Date(token).toISOString(),
+      },
+      {
+        id: `tenant2-${token}`,
+        tenantId: tenant2Id,
+        conversationId,
+        senderId: 'user-2',
+        content: `hello ${sharedTerm} tenant2`,
+        timestamp: new Date(token + 1).toISOString(),
+      },
+    ];
+
+    for (const doc of docs) {
+      await elasticsearchClient.index({
+        index: elasticsearchIndexName,
+        id: doc.id,
+        document: doc,
+      });
+    }
+
+    await elasticsearchClient.indices.refresh({
+      index: elasticsearchIndexName,
+    });
+
+    const tenant1Response = await request(app.getHttpServer())
+      .get(`/api/conversations/${conversationId}/messages/search`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .query({ q: sharedTerm, page: 1, limit: 10 })
+      .expect(200);
+
+    expect(tenant1Response.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      tenant1Response.body.data.every(
+        (item: { tenantId: string }) => item.tenantId === tenantId,
+      ),
+    ).toBe(true);
+    expect(
+      tenant1Response.body.data.some(
+        (item: { id: string }) => item.id === `tenant2-${token}`,
+      ),
+    ).toBe(false);
+
+    const tenant2Response = await request(app.getHttpServer())
+      .get(`/api/conversations/${conversationId}/messages/search`)
+      .set('Authorization', `Bearer ${tenant2AccessToken}`)
+      .query({ q: sharedTerm, page: 1, limit: 10 })
+      .expect(200);
+
+    expect(tenant2Response.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      tenant2Response.body.data.every(
+        (item: { tenantId: string }) => item.tenantId === tenant2Id,
+      ),
+    ).toBe(true);
+    expect(
+      tenant2Response.body.data.some(
+        (item: { id: string }) => item.id === `tenant1-${token}`,
+      ),
+    ).toBe(false);
   });
 
   it('returns 401 when missing token on protected endpoint', async () => {

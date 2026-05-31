@@ -10,6 +10,7 @@ describe('GetConversationMessagesUseCase', () => {
       data: [
         {
           id: 'msg-1',
+          tenantId: 'tenant-1',
           conversationId: 'conversation-1',
           senderId: 'user-1',
           content: 'hello',
@@ -30,6 +31,7 @@ describe('GetConversationMessagesUseCase', () => {
     const useCase = new GetConversationMessagesUseCase(repository);
 
     const result = await useCase.execute({
+      tenantId: 'tenant-1',
       conversationId: 'conversation-1',
       page: 2,
       limit: 10,
@@ -37,11 +39,15 @@ describe('GetConversationMessagesUseCase', () => {
     });
 
     expect(findByConversationId).toHaveBeenCalledTimes(1);
-    expect(findByConversationId).toHaveBeenCalledWith('conversation-1', {
-      page: 2,
-      limit: 10,
-      sortOrder: 'asc',
-    });
+    expect(findByConversationId).toHaveBeenCalledWith(
+      'tenant-1',
+      'conversation-1',
+      {
+        page: 2,
+        limit: 10,
+        sortOrder: 'asc',
+      },
+    );
     expect(result).toEqual(response);
   });
 });

@@ -8,5 +8,6 @@ export type LoginResult = {
     id: string;
     username: string;
     role: UserRole;
+    tenantId: string;
   };
 };

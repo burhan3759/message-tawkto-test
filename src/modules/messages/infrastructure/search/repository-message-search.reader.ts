@@ -13,12 +13,14 @@ export class RepositoryMessageSearchReader implements MessageSearchReader {
   ) {}
 
   async searchByConversationId(
+    tenantId: string,
     conversationId: string,
     searchTerm: string,
     page: number,
     limit: number,
   ) {
     return this.messageRepository.searchByConversationId(
+      tenantId,
       conversationId,
       searchTerm,
       {
