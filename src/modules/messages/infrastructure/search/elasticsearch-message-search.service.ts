@@ -10,6 +10,7 @@ import { MessageSearchReader } from '../../domain/search/message-search.reader';
 type IndexedMessageDocument = {
   id: string;
   conversationId: string;
+  senderId: string;
   content: string;
   timestamp: string;
 };
@@ -55,6 +56,7 @@ export class ElasticsearchMessageSearchService
                 properties: {
                   id: { type: 'keyword' },
                   conversationId: { type: 'keyword' },
+                  senderId: { type: 'keyword' },
                   content: { type: 'text' },
                   timestamp: { type: 'date' },
                 },
@@ -84,6 +86,7 @@ export class ElasticsearchMessageSearchService
     const document: IndexedMessageDocument = {
       id: eventData.id,
       conversationId: eventData.conversationId,
+      senderId: eventData.senderId,
       content: eventData.content,
       timestamp: eventData.timestamp,
     };
@@ -147,7 +150,7 @@ export class ElasticsearchMessageSearchService
           conversationId: source.conversationId,
           content: source.content,
           timestamp: new Date(source.timestamp),
-          senderId: '',
+          senderId: source.senderId,
         })),
       meta: {
         page,

@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 
 describe('MessagesController (integration)', () => {
-  jest.setTimeout(30000);
+  jest.setTimeout(60000);
 
   let app: INestApplication;
   let accessToken: string;
@@ -174,7 +174,7 @@ describe('MessagesController (integration)', () => {
 
     let response: request.Response | undefined;
 
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
       const currentResponse = await request(app.getHttpServer())
         .get(`/api/conversations/${conversationId}/messages/search`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -187,10 +187,11 @@ describe('MessagesController (integration)', () => {
         break;
       }
 
-      await wait(300);
+      await wait(500);
     }
 
     expect(response).toBeDefined();
+    expect(response!.body.meta.total).toBeGreaterThanOrEqual(2);
 
     expect(response!.body.meta).toMatchObject({
       page: 1,

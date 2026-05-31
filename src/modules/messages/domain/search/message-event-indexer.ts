@@ -3,6 +3,7 @@ export const MESSAGE_EVENT_INDEXER = Symbol('MESSAGE_EVENT_INDEXER');
 export type MessageCreatedEventData = {
   id: string;
   conversationId: string;
+  senderId: string;
   content: string;
   timestamp: string;
 };
