@@ -124,7 +124,10 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
     const total = await collection.countDocuments(filter);
     const documents = await collection
       .find(filter)
-      .sort({ timestamp: options.sortOrder === 'asc' ? 1 : -1 })
+      .sort({
+        timestamp: options.sortOrder === 'asc' ? 1 : -1,
+        _id: options.sortOrder === 'asc' ? 1 : -1,
+      })
       .skip((options.page - 1) * options.limit)
       .limit(options.limit)
       .toArray();
@@ -154,7 +157,7 @@ export class MongoMessageRepository implements MessageRepository, OnModuleDestro
     const total = await collection.countDocuments(filter);
     const documents = await collection
       .find(filter)
-      .sort({ timestamp: -1 })
+      .sort({ timestamp: -1, _id: -1 })
       .skip((options.page - 1) * options.limit)
       .limit(options.limit)
       .toArray();

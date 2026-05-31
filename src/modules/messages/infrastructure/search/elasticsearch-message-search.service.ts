@@ -127,7 +127,10 @@ export class ElasticsearchMessageSearchService
           ],
         },
       },
-      sort: [{ timestamp: { order: 'desc' } }],
+      sort: [
+        { timestamp: { order: 'desc' } },
+        { id: { order: 'desc' } },
+      ],
     });
 
     const totalHits =

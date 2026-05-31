@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Client } from '@elastic/elasticsearch';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Kafka, Producer } from 'kafkajs';
 import request from 'supertest';
 
 const runPipelineE2E = process.env.RUN_PIPELINE_E2E === 'true';
@@ -14,6 +15,8 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
   let accessToken: string;
   let elasticsearchClient: Client;
   let indexName: string;
+  let kafkaProducer: Producer;
+  let messageCreatedTopic: string;
 
   const wait = (ms: number) =>
     new Promise((resolve) => {
@@ -23,6 +26,9 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
   beforeAll(async () => {
     const elasticsearchNode = process.env.ELASTICSEARCH_NODE;
     const elasticsearchIndexMessages = process.env.ELASTICSEARCH_INDEX_MESSAGES;
+    const kafkaBrokers = process.env.KAFKA_BROKERS;
+    const kafkaClientId = process.env.KAFKA_CLIENT_ID;
+    const kafkaTopicMessageCreated = process.env.KAFKA_TOPIC_MESSAGE_CREATED;
 
     if (!elasticsearchNode) {
       throw new Error('ELASTICSEARCH_NODE is required for pipeline E2E test');
@@ -34,8 +40,34 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       );
     }
 
+    if (!kafkaBrokers) {
+      throw new Error('KAFKA_BROKERS is required for pipeline E2E test');
+    }
+
+    if (!kafkaClientId) {
+      throw new Error('KAFKA_CLIENT_ID is required for pipeline E2E test');
+    }
+
+    if (!kafkaTopicMessageCreated) {
+      throw new Error(
+        'KAFKA_TOPIC_MESSAGE_CREATED is required for pipeline E2E test',
+      );
+    }
+
     indexName = elasticsearchIndexMessages;
     elasticsearchClient = new Client({ node: elasticsearchNode });
+    messageCreatedTopic = kafkaTopicMessageCreated;
+
+    const kafka = new Kafka({
+      clientId: `${kafkaClientId}-pipeline-e2e`,
+      brokers: kafkaBrokers
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    });
+
+    kafkaProducer = kafka.producer();
+    await kafkaProducer.connect();
 
     const { AppModule } = await import('../src/app.module');
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -65,6 +97,8 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
 
   afterAll(async () => {
     await app.close();
+    await kafkaProducer.disconnect();
+    await wait(1000);
   });
 
   it('indexes created message through Kafka and returns it from Elasticsearch-backed search', async () => {
@@ -168,5 +202,59 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
     expect(indexedDocument?.conversationId).toBe(conversationId);
     expect(indexedDocument?.senderId).toBe(senderId);
     expect(indexedDocument?.content).toContain(uniqueTerm);
+
+    const duplicateEvent = {
+      eventName: 'message.created',
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      data: {
+        id: createdMessageId,
+        conversationId,
+        senderId,
+        content: `hello ${uniqueTerm} from pipeline`,
+        timestamp: createResponse.body.timestamp,
+      },
+    };
+
+    await kafkaProducer.send({
+      topic: messageCreatedTopic,
+      messages: [
+        {
+          key: conversationId,
+          value: JSON.stringify(duplicateEvent),
+        },
+      ],
+    });
+
+    let dedupeCount = -1;
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const duplicateCheckResult = await elasticsearchClient.search({
+        index: indexName,
+        query: {
+          bool: {
+            must: [
+              { match_phrase: { conversationId } },
+              { match_phrase: { senderId } },
+              { match_phrase: { content: uniqueTerm } },
+            ],
+          },
+        },
+        size: 10,
+      });
+
+      dedupeCount =
+        typeof duplicateCheckResult.hits.total === 'number'
+          ? duplicateCheckResult.hits.total
+          : (duplicateCheckResult.hits.total?.value ?? 0);
+
+      if (dedupeCount === 1) {
+        break;
+      }
+
+      await wait(500);
+    }
+
+    expect(dedupeCount).toBe(1);
   });
 });
