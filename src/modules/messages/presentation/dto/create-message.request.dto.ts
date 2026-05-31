@@ -1,4 +1,8 @@
 import {
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
+import {
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -6,18 +10,26 @@ import {
 } from 'class-validator';
 
 export class CreateMessageRequestDto {
+  @ApiProperty({ example: 'conversation-123' })
   @IsString()
   @IsNotEmpty()
   conversationId!: string;
 
+  @ApiProperty({ example: 'Hello from API' })
   @IsString()
   @IsNotEmpty()
   content!: string;
 
+  @ApiProperty({ example: 'user-42' })
   @IsString()
   @IsNotEmpty()
   senderId!: string;
 
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    example: { source: 'web', importance: 'normal' },
+  })
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
