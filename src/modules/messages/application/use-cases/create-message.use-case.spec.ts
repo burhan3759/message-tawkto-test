@@ -5,7 +5,7 @@ import { CreateMessageUseCase } from './create-message.use-case';
 describe('CreateMessageUseCase', () => {
   it('should create and store a message', async () => {
     const save = jest.fn(async (message: Message) => message);
-    const repository: MessageRepository = { save };
+    const repository = { save } as unknown as MessageRepository;
     const useCase = new CreateMessageUseCase(repository);
 
     const result = await useCase.execute({
