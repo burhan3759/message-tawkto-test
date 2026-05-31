@@ -1,0 +1,31 @@
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_started
+    environment:
+      NODE_ENV: test
+      JWT_SECRET: tawkto-dev-secret
+      MONGODB_URI: mongodb://root:root@mongo:27017/tawkto?authSource=admin
+      MONGODB_DB_NAME: tawkto
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: tawkto-message-api-test
+      KAFKA_TOPIC_MESSAGE_CREATED: messages.created.v1
+      KAFKA_CONSUMER_GROUP_MESSAGE_INDEXER: message-search-indexer-v1-test
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      ELASTICSEARCH_INDEX_MESSAGES: messages_test
+    command: >
+      sh -c "
+      node scripts/wait-for-services.js &&
+      yarn test:unit &&
+      RUN_PIPELINE_E2E=true yarn test:integration
+      "

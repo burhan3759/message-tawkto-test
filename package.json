@@ -11,7 +11,9 @@
     "test": "jest",
     "test:unit": "jest --testMatch '**/*.spec.ts'",
     "test:integration": "jest --runInBand --testMatch '**/*.int-spec.ts'",
-    "test:pipeline:e2e": "RUN_PIPELINE_E2E=true jest --runInBand --testMatch '**/*.int-spec.ts' --testMatch '**/messages.pipeline.int-spec.ts'"
+    "test:pipeline:e2e": "RUN_PIPELINE_E2E=true jest --runInBand --testMatch '**/*.int-spec.ts' --testMatch '**/messages.pipeline.int-spec.ts'",
+    "test:dockerized": "docker compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner test-runner",
+    "test:dockerized:down": "docker compose -f docker-compose.yml -f docker-compose.test.yml down -v"
   },
   "keywords": [],
   "author": "",
