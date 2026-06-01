@@ -13,6 +13,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
 
   let app: INestApplication;
   let accessToken: string;
+  let userId: string;
   let tenantId: string;
   let elasticsearchClient: Client;
   let indexName: string;
@@ -94,6 +95,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       .expect(200);
 
     accessToken = loginResponse.body.accessToken;
+    userId = loginResponse.body.user.id;
     tenantId = loginResponse.body.user.tenantId;
   });
 
@@ -107,7 +109,6 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
     const token = Date.now().toString();
     const conversationId = `pipeline-conv-${token}`;
     const uniqueTerm = `term-${token}`;
-    const senderId = `user-pipeline-${token}`;
 
     let createdMessageId: string | undefined;
 
@@ -117,7 +118,6 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
       .send({
         conversationId,
         content: `hello ${uniqueTerm} from pipeline`,
-        senderId,
       })
       .expect(201);
 
@@ -143,7 +143,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
           tenantId: string;
         }) =>
           item.content.includes(uniqueTerm) &&
-          item.senderId === senderId &&
+            item.senderId === userId &&
           item.id === createdMessageId &&
           item.tenantId === tenantId,
       );
@@ -198,7 +198,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
           (source): source is NonNullable<typeof source> =>
             source !== undefined &&
             source.id === createdMessageId &&
-            source.senderId === senderId,
+            source.senderId === userId,
         );
 
       if (indexedDocument) {
@@ -212,7 +212,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
     expect(indexedDocument?.id).toBe(createdMessageId);
     expect(indexedDocument?.tenantId).toBe(tenantId);
     expect(indexedDocument?.conversationId).toBe(conversationId);
-    expect(indexedDocument?.senderId).toBe(senderId);
+    expect(indexedDocument?.senderId).toBe(userId);
     expect(indexedDocument?.content).toContain(uniqueTerm);
 
     const duplicateEvent = {
@@ -223,7 +223,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
         id: createdMessageId,
         tenantId,
         conversationId,
-        senderId,
+        senderId: userId,
         content: `hello ${uniqueTerm} from pipeline`,
         timestamp: createResponse.body.timestamp,
       },
@@ -249,7 +249,7 @@ describeIfEnabled('Message Pipeline (Kafka -> Elasticsearch)', () => {
             must: [
               { match_phrase: { tenantId } },
               { match_phrase: { conversationId } },
-              { match_phrase: { senderId } },
+              { match_phrase: { senderId: userId } },
               { match_phrase: { content: uniqueTerm } },
             ],
           },

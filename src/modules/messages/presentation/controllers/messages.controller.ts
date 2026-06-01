@@ -29,6 +29,7 @@ import { SearchConversationMessagesQueryDto } from '../dto/search-conversation-m
 
 type AuthenticatedRequest = {
   user: {
+    sub: string;
     tenantId: string;
   };
 };
@@ -57,7 +58,7 @@ export class MessagesController {
       tenantId: authRequest.user.tenantId,
       conversationId: request.conversationId,
       content: request.content,
-      senderId: request.senderId,
+      senderId: authRequest.user.sub,
       metadata: request.metadata,
     });
   }

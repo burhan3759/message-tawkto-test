@@ -10,6 +10,7 @@ describe('MessagesController (integration)', () => {
 
   let app: INestApplication;
   let accessToken: string;
+  let userId: string;
   let tenantId: string;
   let tenant2AccessToken: string;
   let tenant2Id: string;
@@ -70,6 +71,7 @@ describe('MessagesController (integration)', () => {
       .expect(200);
 
     accessToken = loginResponse.body.accessToken;
+    userId = loginResponse.body.user.id;
     tenantId = loginResponse.body.user.tenantId;
 
     const tenant2LoginResponse = await request(app.getHttpServer())
@@ -95,7 +97,6 @@ describe('MessagesController (integration)', () => {
       .send({
         conversationId: 'conversation-1',
         content: 'Integration test message',
-        senderId: 'user-123',
       })
       .expect(201);
 
@@ -103,7 +104,7 @@ describe('MessagesController (integration)', () => {
       tenantId,
       conversationId: 'conversation-1',
       content: 'Integration test message',
-      senderId: 'user-123',
+      senderId: userId,
     });
     expect(response.body.id).toBeDefined();
     expect(response.body.timestamp).toBeDefined();
@@ -114,7 +115,6 @@ describe('MessagesController (integration)', () => {
       .post('/api/messages')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        senderId: 'user-123',
       })
       .expect(400);
 
@@ -122,17 +122,18 @@ describe('MessagesController (integration)', () => {
     expect(response.body.message).toContain('content should not be empty');
   });
 
-  it('POST /api/messages returns 400 when senderId is missing', async () => {
+  it('POST /api/messages returns 400 when senderId is provided by client', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/messages')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         conversationId: 'conversation-validation-sender',
         content: 'content',
+        senderId: 'spoofed-user',
       })
       .expect(400);
 
-    expect(response.body.message).toContain('senderId should not be empty');
+    expect(response.body.message).toContain('property senderId should not exist');
   });
 
   it('GET /api/conversations/:conversationId/messages supports pagination and sorting', async () => {
@@ -144,7 +145,6 @@ describe('MessagesController (integration)', () => {
       .send({
         conversationId,
         content: 'first',
-        senderId: 'user-1',
       });
     await wait(5);
 
@@ -154,7 +154,6 @@ describe('MessagesController (integration)', () => {
       .send({
         conversationId,
         content: 'second',
-        senderId: 'user-1',
       });
     await wait(5);
 
@@ -164,7 +163,6 @@ describe('MessagesController (integration)', () => {
       .send({
         conversationId,
         content: 'third',
-        senderId: 'user-1',
       });
 
     const ascResponse = await request(app.getHttpServer())

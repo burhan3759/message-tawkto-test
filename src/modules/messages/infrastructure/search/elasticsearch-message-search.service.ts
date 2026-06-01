@@ -116,6 +116,14 @@ export class ElasticsearchMessageSearchService
       from,
       size: limit,
       track_total_hits: true,
+      runtime_mappings: {
+        id_sort: {
+          type: 'keyword',
+          script: {
+            source: "emit(params._source.id)",
+          },
+        },
+      },
       query: {
         bool: {
           must: [
@@ -134,7 +142,7 @@ export class ElasticsearchMessageSearchService
       },
       sort: [
         { timestamp: { order: 'desc' } },
-        { id: { order: 'desc' } },
+        { id_sort: { order: 'desc' } },
       ],
     });
 

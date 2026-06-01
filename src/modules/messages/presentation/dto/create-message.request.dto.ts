@@ -20,11 +20,6 @@ export class CreateMessageRequestDto {
   @IsNotEmpty()
   content!: string;
 
-  @ApiProperty({ example: 'user-42' })
-  @IsString()
-  @IsNotEmpty()
-  senderId!: string;
-
   @ApiPropertyOptional({
     type: 'object',
     additionalProperties: true,
